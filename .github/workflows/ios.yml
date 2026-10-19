@@ -1,0 +1,38 @@
+# Unsigned iOS build of the passenger app (Windows can't build iOS). Install the .ipa with Sideloadly + Apple ID.
+name: iOS pasajero (unsigned)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths: ['app/**', '.github/workflows/ios.yml']
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: >
+          flutter build ios --release --no-codesign
+          -t lib/main_pasajero.dart
+          --dart-define=API_URL=https://transmcbo-api.onrender.com
+      - name: Package .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qr transmcbo-pasajero-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: transmcbo-pasajero-ios
+          path: app/transmcbo-pasajero-unsigned.ipa
+          retention-days: 14
